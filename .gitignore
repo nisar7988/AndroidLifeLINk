@@ -1,0 +1,21 @@
+# Ignore build, gradle, IDE, and cache files
+/build/
+**/build/
+.gradle/
+.idea/
+local.properties
+*.iml
+*.apk
+*.aab
+*.ap_
+*.aar
+*.dex
+*.class
+bin/
+gen/
+out/
+caches/
+daemon/
+native/
+.tmp/
+wrapper/dists/

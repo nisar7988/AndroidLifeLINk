@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "374207748578",
+    "project_id": "lifelink-d240a",
+    "storage_bucket": "lifelink-d240a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374207748578:android:fef79e41162fb00c4781bb",
+        "android_client_info": {
+          "package_name": "com.example.lifelink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCX6dLP1QetuHLF5YG3kawncRhQ3QknBBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:374207748578:android:b31e9502f740878b4781bb",
+        "android_client_info": {
+          "package_name": "gr.gdschua.bloodapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCX6dLP1QetuHLF5YG3kawncRhQ3QknBBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
