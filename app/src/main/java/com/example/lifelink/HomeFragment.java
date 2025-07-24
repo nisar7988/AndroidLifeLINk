@@ -198,7 +198,7 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         tvLivesSaved.setText("6");
         tvLastDonation.setText("3");
         // Optionally set a default profile image
-        ivUserProfile.setImageResource(android.R.drawable.ic_menu_camera);
+        ivUserProfile.setImageResource(R.drawable.profile);
     }
     
     private void loadNotifications() {
