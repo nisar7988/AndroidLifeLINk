@@ -9,10 +9,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.EditText;
 import android.widget.Toast;
+import android.widget.ArrayAdapter;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -20,16 +24,22 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.Query;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Arrays;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -43,12 +53,14 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
     private CircleImageView ivUserProfile;
     private LinearLayout btnDonateBlood, btnFindCenters, btnRequestBlood, btnEmergency;
     
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-    private FirebaseUser currentUser;
-    private String userId;
-    private String userName;
-    private String userBloodType;
+    // Remove Firebase fields
+    // private FirebaseAuth mAuth;
+    // private FirebaseFirestore db;
+    // private FirebaseUser currentUser;
+    // private String userId;
+    private String userName = "jaagu";
+    private String userBloodType = "A+";
+    private String userAddress = "123 Main St";
     
     private BloodRequestAdapter bloodRequestAdapter;
     private NotificationAdapter notificationAdapter;
@@ -65,13 +77,14 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        currentUser = mAuth.getCurrentUser();
+        // Remove Firebase init
+        // mAuth = FirebaseAuth.getInstance();
+        // db = FirebaseFirestore.getInstance();
+        // currentUser = mAuth.getCurrentUser();
         
-        if (currentUser != null) {
-            userId = currentUser.getUid();
-        }
+        // if (currentUser != null) {
+        //     userId = currentUser.getUid();
+        // }
         
         // Initialize all views
         initializeViews(view);
@@ -135,7 +148,7 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
     private void setupClickListeners() {
         // Quick action buttons
         btnDonateBlood.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Donate Blood feature coming soon", Toast.LENGTH_SHORT).show();
+            showDonateBloodDialog();
         });
         
         btnFindCenters.setOnClickListener(v -> {
@@ -146,7 +159,7 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         });
         
         btnRequestBlood.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Request Blood feature coming soon", Toast.LENGTH_SHORT).show();
+            showBloodRequestDialog();
         });
         
         btnEmergency.setOnClickListener(v -> {
@@ -178,53 +191,14 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
     }
     
     private void loadUserData() {
-        if (userId != null) {
-            db.collection("users").document(userId)
-                    .get()
-                    .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                        @Override
-                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                            if (task.isSuccessful() && isAdded()) {
-                                DocumentSnapshot document = task.getResult();
-                                if (document.exists()) {
-                                    userName = document.getString("name");
-                                    userBloodType = document.getString("bloodType");
-                                    
-                                    // Update UI with user data
+        // Use static data
                                     tvWelcome.setText("Welcome, " + userName + "!");
-                                    tvUserBloodType.setText(userBloodType != null ? userBloodType : "Unknown");
-                                    
-                                    // Load profile image if available
-                                    String profileImagePath = document.getString("profileImagePath");
-                                    if (profileImagePath != null && !profileImagePath.isEmpty()) {
-                                        try {
-                                            File imageFile = new File(profileImagePath);
-                                            if (imageFile.exists()) {
-                                                Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-                                                if (bitmap != null) {
-                                                    ivUserProfile.setImageBitmap(bitmap);
-                                                }
-                                            }
-                                        } catch (Exception e) {
-                                            // If there's an error loading the profile image, just use the default
-                                            Log.e("HomeFragment", "Error loading profile image: " + e.getMessage());
-                                        }
-                                    }
-                                    
-                                    // Load donation statistics
-                                    Long donationsCount = document.getLong("donationsCount");
-                                    Long livesSaved = document.getLong("livesSaved");
-                                    Long lastDonationDays = document.getLong("lastDonationDays");
-                                    
-                                    // Update UI with donation statistics
-                                    tvDonationsCount.setText(donationsCount != null ? donationsCount.toString() : "0");
-                                    tvLivesSaved.setText(livesSaved != null ? livesSaved.toString() : "0");
-                                    tvLastDonation.setText(lastDonationDays != null ? lastDonationDays.toString() : "--");
-                                }
-                            }
-                        }
-                    });
-        }
+        tvUserBloodType.setText(userBloodType);
+        tvDonationsCount.setText("2");
+        tvLivesSaved.setText("6");
+        tvLastDonation.setText("3");
+        // Optionally set a default profile image
+        ivUserProfile.setImageResource(android.R.drawable.ic_menu_camera);
     }
     
     private void loadNotifications() {
@@ -232,17 +206,12 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         // In a real app, you would fetch from Firestore
         notificationsList.clear();
         
-        notificationsList.add(new NotificationModel("1", "Blood Drive", 
-                "Campus blood drive next Monday at Student Center. All blood types welcome.", "2h ago", 0));
-        
-        notificationsList.add(new NotificationModel("2", "Blood Type in Demand", 
-                "Your blood type " + userBloodType + " is in high demand! Please consider donating soon.", "1d ago", 2));
-        
-        notificationsList.add(new NotificationModel("3", "Thank You", 
-                "Thank you for being a blood donor. Your last donation has helped save lives!", "2d ago", 1));
-        
-        notificationsList.add(new NotificationModel("4", "New Blood Request", 
-                "There's a new blood request matching your blood type nearby. Check it out!", "3d ago", 3));
+        notificationsList.addAll(Arrays.asList(
+            new NotificationModel("1", "Blood Drive", "Campus blood drive next Monday at Student Center. All blood types welcome.", "2h ago", 0),
+            new NotificationModel("2", "Blood Type in Demand", "Your blood type " + userBloodType + " is in high demand! Please consider donating soon.", "1d ago", 2),
+            new NotificationModel("3", "Thank You", "Thank you for being a blood donor. Your last donation has helped save lives!", "2d ago", 1),
+            new NotificationModel("4", "New Blood Request", "There's a new blood request matching your blood type nearby. Check it out!", "3d ago", 3)
+        ));
         
         // Update UI
         if (notificationsList.isEmpty()) {
@@ -260,10 +229,12 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         // In a real app, you would fetch from Firestore
         bloodRequestsList.clear();
         
-        bloodRequestsList.add(new BloodRequestModel("1", "A+", "City Hospital", true, "2h ago", "2.5 miles"));
-        bloodRequestsList.add(new BloodRequestModel("2", "O-", "Memorial Medical Center", false, "5h ago", "5.1 miles"));
-        bloodRequestsList.add(new BloodRequestModel("3", "B+", "University Hospital", true, "1d ago", "8.3 miles"));
-        bloodRequestsList.add(new BloodRequestModel("4", "AB-", "Children's Hospital", false, "1d ago", "10.7 miles"));
+        bloodRequestsList.addAll(Arrays.asList(
+            new BloodRequestModel("1", "A+", "City Hospital", true, "2h ago", "2.5 miles"),
+            new BloodRequestModel("2", "O-", "Memorial Medical Center", false, "5h ago", "5.1 miles"),
+            new BloodRequestModel("3", "B+", "University Hospital", true, "1d ago", "8.3 miles"),
+            new BloodRequestModel("4", "AB-", "Children's Hospital", false, "1d ago", "10.7 miles")
+        ));
         
         // Update UI
         if (bloodRequestsList.isEmpty()) {
@@ -275,6 +246,29 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
             bloodRequestAdapter.notifyDataSetChanged();
         }
     }
+    
+    private String getTimeAgo(Date date) {
+        if (date == null) return "Unknown";
+        
+        long timeInMillis = date.getTime();
+        long now = System.currentTimeMillis();
+        long diff = now - timeInMillis;
+        
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+        
+        if (days > 0) {
+            return days + "d ago";
+        } else if (hours > 0) {
+            return hours + "h ago";
+        } else if (minutes > 0) {
+            return minutes + "m ago";
+        } else {
+            return "Just now";
+        }
+    }
 
     @Override
     public void onBloodRequestClick(BloodRequestModel request) {
@@ -284,9 +278,36 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
 
     @Override
     public void onRespondClick(BloodRequestModel request) {
-        // Handle respond button click
-        Toast.makeText(getContext(), "Responding to " + request.getHospitalName() + " for " + 
-                request.getBloodType() + " blood request", Toast.LENGTH_SHORT).show();
+        // Show confirmation dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Respond to Blood Request");
+        builder.setMessage("Are you sure you want to respond to the " + request.getBloodType() + 
+                " blood request at " + request.getHospitalName() + "?");
+        
+        builder.setPositiveButton("Yes, I can help", (dialog, which) -> {
+            respondToBloodRequest(request);
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    
+    private void respondToBloodRequest(BloodRequestModel request) {
+        // Remove all Firestore and FirebaseAuth usages
+                    Toast.makeText(getContext(), "Response sent successfully! The requester will be notified.", 
+                            Toast.LENGTH_LONG).show();
+    }
+    
+    private void sendResponseNotification(BloodRequestModel request) {
+        // In a real app, you would send a push notification to the requester
+        // For now, we'll just show a local notification
+        if (getContext() != null) {
+            NotificationHelper.sendBloodRequestNotification(
+                    getContext(),
+                    request.getBloodType(),
+                    request.getHospitalName()
+            );
+        }
     }
 
     @Override
@@ -294,5 +315,90 @@ public class HomeFragment extends Fragment implements BloodRequestAdapter.OnBloo
         // Handle notification click
         Toast.makeText(getContext(), notification.getTitle() + ": " + notification.getContent(), 
                 Toast.LENGTH_SHORT).show();
+    }
+
+    private void showBloodRequestDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Create Blood Request");
+        
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_blood_request, null);
+        builder.setView(dialogView);
+        
+        Spinner spinnerBloodType = dialogView.findViewById(R.id.spinnerBloodType);
+        EditText etHospitalName = dialogView.findViewById(R.id.etHospitalName);
+        EditText etDescription = dialogView.findViewById(R.id.etDescription);
+        SwitchMaterial switchUrgent = dialogView.findViewById(R.id.switchUrgent);
+        
+        // Setup blood type spinner
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                R.array.blood_types, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerBloodType.setAdapter(adapter);
+        
+        builder.setPositiveButton("Create Request", (dialog, which) -> {
+            String bloodType = spinnerBloodType.getSelectedItem().toString();
+            String hospitalName = etHospitalName.getText().toString().trim();
+            String description = etDescription.getText().toString().trim();
+            boolean isUrgent = switchUrgent.isChecked();
+            
+            if (hospitalName.isEmpty()) {
+                Toast.makeText(getContext(), "Please enter hospital name", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            createBloodRequest(bloodType, hospitalName, description, isUrgent);
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    
+    private void createBloodRequest(String bloodType, String hospitalName, String description, boolean isUrgent) {
+        // Remove all Firestore and FirebaseAuth usages
+                    Toast.makeText(getContext(), "Blood request created successfully", Toast.LENGTH_SHORT).show();
+                    loadBloodRequests(); // Refresh the list
+    }
+
+    private void showDonateBloodDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Donate Blood");
+        
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_donate_blood, null);
+        builder.setView(dialogView);
+        
+        EditText etDonationCenter = dialogView.findViewById(R.id.etDonationCenter);
+        EditText etDonationDate = dialogView.findViewById(R.id.etDonationDate);
+        EditText etNotes = dialogView.findViewById(R.id.etNotes);
+        
+        // Set current date as default
+        String currentDate = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(new Date());
+        etDonationDate.setText(currentDate);
+        
+        builder.setPositiveButton("Record Donation", (dialog, which) -> {
+            String donationCenter = etDonationCenter.getText().toString().trim();
+            String donationDate = etDonationDate.getText().toString().trim();
+            String notes = etNotes.getText().toString().trim();
+            
+            if (donationCenter.isEmpty()) {
+                Toast.makeText(getContext(), "Please enter donation center", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            
+            recordBloodDonation(donationCenter, donationDate, notes);
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    
+    private void recordBloodDonation(String donationCenter, String donationDate, String notes) {
+        // Remove all Firestore and FirebaseAuth usages
+                    Toast.makeText(getContext(), "Blood donation recorded successfully", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void updateUserDonationStats() {
+        // Remove all Firestore and FirebaseAuth usages
+                                    // Refresh user data display
+                                    loadUserData();
     }
 } 

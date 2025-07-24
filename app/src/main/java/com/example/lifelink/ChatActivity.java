@@ -19,15 +19,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -47,9 +41,7 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton btnSend;
     private TextView tvEmptyChat;
 
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-    private String currentUserId;
+    private String currentUserId = "jaagu";
     private String chatUserId;
     private String chatUserName;
 
@@ -60,11 +52,6 @@ public class ChatActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-
-        // Initialize Firebase
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        currentUserId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "";
 
         // Get chat user information from intent
         Intent intent = getIntent();
@@ -135,36 +122,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadUserProfileImage() {
-        try {
-            if (db != null && !TextUtils.isEmpty(chatUserId)) {
-                db.collection("users").document(chatUserId)
-                        .get()
-                        .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
-                            @Override
-                            public void onSuccess(DocumentSnapshot documentSnapshot) {
-                                if (documentSnapshot.exists()) {
-                                    String profileImagePath = documentSnapshot.getString("profileImagePath");
-                                    if (profileImagePath != null && !profileImagePath.isEmpty()) {
-                                        try {
-                                            // Load profile image from local storage if available
-                                            // For now, we'll just use the default image
-                                        } catch (Exception e) {
-                                            Log.e(TAG, "Error loading profile image: " + e.getMessage());
-                                        }
-                                    }
-                                }
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Log.e(TAG, "Failed to get user profile: " + e.getMessage());
-                            }
-                        });
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error in loadUserProfileImage: " + e.getMessage());
-        }
+        // Set a default image
+        profileImage.setImageResource(android.R.drawable.ic_menu_camera);
     }
 
     private void setupRecyclerView() {
@@ -202,163 +161,45 @@ public class ChatActivity extends AppCompatActivity {
                 return;
             }
             
-            // Create message object
-            Map<String, Object> message = new HashMap<>();
-            message.put("sender", currentUserId);
-            message.put("receiver", chatUserId);
-            message.put("text", messageText);
-            message.put("timestamp", new Date());
-            message.put("read", false);
-            
-            // Clear input field immediately for better UX
+            // Clear the input field
             etMessage.setText("");
             
-            // Create a unique conversation ID to group messages between these two users
-            String conversationId = getConversationId(currentUserId, chatUserId);
+            // Add message to static list
+            ChatMessageModel newMessage = new ChatMessageModel(
+                    String.valueOf(messagesList.size() + 1),
+                    currentUserId,
+                    chatUserId,
+                    messageText,
+                    "Now",
+                    true
+            );
             
-            // Add message to Firestore
-            if (db != null) {
-                db.collection("conversations").document(conversationId)
-                        .collection("messages")
-                        .add(message)
-                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                            @Override
-                            public void onSuccess(DocumentReference documentReference) {
-                                // Update conversation metadata
-                                updateConversationMetadata(conversationId, messageText);
-                                
-                                // Add the message to our local list for instant display
-                                ChatMessageModel newMessage = new ChatMessageModel(
-                                        documentReference.getId(),
-                                        currentUserId,
-                                        chatUserId,
-                                        messageText,
-                                        new Date().toString(),
-                                        false
-                                );
-                                messagesList.add(newMessage);
-                                chatAdapter.notifyItemInserted(messagesList.size() - 1);
-                                
-                                // Scroll to the latest message
-                                if (messagesList.size() > 0) {
-                                    rvMessages.smoothScrollToPosition(messagesList.size() - 1);
-                                }
-                                
-                                // Update UI if this was the first message
-                                if (messagesList.size() == 1 && tvEmptyChat != null) {
-                                    tvEmptyChat.setVisibility(View.GONE);
-                                    rvMessages.setVisibility(View.VISIBLE);
-                                }
-                            }
-                        })
-                        .addOnFailureListener(new OnFailureListener() {
-                            @Override
-                            public void onFailure(@NonNull Exception e) {
-                                Toast.makeText(ChatActivity.this, "Error sending message: " + e.getMessage(), 
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        });
-            } else {
-                Toast.makeText(this, "Error: Database not initialized", Toast.LENGTH_SHORT).show();
-            }
+            messagesList.add(newMessage);
+            chatAdapter.notifyItemInserted(messagesList.size() - 1);
+            
+            // Scroll to bottom
+            rvMessages.smoothScrollToPosition(messagesList.size() - 1);
+            
+            updateUIAfterMessagesLoaded();
         } catch (Exception e) {
             Log.e(TAG, "Error in sendMessage: " + e.getMessage());
-            Toast.makeText(this, "Error sending message", Toast.LENGTH_SHORT).show();
         }
     }
     
     private void updateConversationMetadata(String conversationId, String lastMessage) {
-        try {
-            if (db == null) return;
-            
-            // Create or update conversation metadata for both users
-            Map<String, Object> conversationData = new HashMap<>();
-            conversationData.put("lastMessage", lastMessage);
-            conversationData.put("timestamp", new Date());
-            conversationData.put("participants", new String[]{currentUserId, chatUserId});
-            
-            db.collection("conversation_metadata").document(conversationId)
-                    .set(conversationData)
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.e(TAG, "Error updating conversation metadata: " + e.getMessage());
-                        }
-                    });
-        } catch (Exception e) {
-            Log.e(TAG, "Error in updateConversationMetadata: " + e.getMessage());
-        }
+        // This method is no longer needed as conversation logic is removed
     }
 
     private void loadMessages() {
-        try {
-            if (db == null || TextUtils.isEmpty(currentUserId) || TextUtils.isEmpty(chatUserId)) {
-                if (tvEmptyChat != null) {
-                    tvEmptyChat.setVisibility(View.VISIBLE);
-                    rvMessages.setVisibility(View.GONE);
-                }
-                return;
-            }
-            
-            String conversationId = getConversationId(currentUserId, chatUserId);
-            
-            db.collection("conversations").document(conversationId)
-                    .collection("messages")
-                    .orderBy("timestamp", Query.Direction.ASCENDING)
-                    .get()
-                    .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
-                        @Override
-                        public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
-                            messagesList.clear();
-                            
-                            if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
-                                for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                                    try {
-                                        String sender = document.getString("sender");
-                                        String receiver = document.getString("receiver");
-                                        String text = document.getString("text");
-                                        Date timestamp = document.getDate("timestamp");
-                                        boolean isRead = Boolean.TRUE.equals(document.getBoolean("read"));
-                                        
-                                        ChatMessageModel message = new ChatMessageModel(
-                                                document.getId(), 
-                                                sender != null ? sender : "", 
-                                                receiver != null ? receiver : "", 
-                                                text != null ? text : "", 
-                                                timestamp != null ? timestamp.toString() : "", 
-                                                isRead);
-                                        
-                                        messagesList.add(message);
-                                        
-                                        // Mark received messages as read
-                                        if (sender != null && sender.equals(chatUserId) && !isRead) {
-                                            markMessageAsRead(document.getId(), conversationId);
-                                        }
-                                    } catch (Exception e) {
-                                        Log.e(TAG, "Error processing message document: " + e.getMessage());
-                                    }
-                                }
-                            }
-                            
-                            // Update UI
-                            updateUIAfterMessagesLoaded();
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.e(TAG, "Error loading messages: " + e.getMessage());
-                            Toast.makeText(ChatActivity.this, "Error loading messages: " + e.getMessage(), 
-                                    Toast.LENGTH_SHORT).show();
-                            
-                            // Show empty state if we can't load messages
-                            updateUIAfterMessagesLoaded();
-                        }
-                    });
-        } catch (Exception e) {
-            Log.e(TAG, "Error in loadMessages: " + e.getMessage());
-            updateUIAfterMessagesLoaded();
-        }
+        // Use static data
+        messagesList.clear();
+        messagesList.addAll(Arrays.asList(
+            new ChatMessageModel("1", chatUserId, currentUserId, "Hi, are you available for donation?", "Today, 10:00 AM", false),
+            new ChatMessageModel("2", currentUserId, chatUserId, "Yes, I am available.", "Today, 10:01 AM", true),
+            new ChatMessageModel("3", chatUserId, currentUserId, "Great! Can you come to City Hospital?", "Today, 10:02 AM", false),
+            new ChatMessageModel("4", currentUserId, chatUserId, "Sure, I will be there at 11 AM.", "Today, 10:03 AM", true)
+        ));
+        updateUIAfterMessagesLoaded();
     }
     
     private void updateUIAfterMessagesLoaded() {
@@ -385,23 +226,11 @@ public class ChatActivity extends AppCompatActivity {
     }
     
     private void markMessageAsRead(String messageId, String conversationId) {
-        try {
-            if (db == null || TextUtils.isEmpty(messageId) || TextUtils.isEmpty(conversationId)) {
-                return;
-            }
-            
-            db.collection("conversations").document(conversationId)
-                    .collection("messages").document(messageId)
-                    .update("read", true)
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Log.e(TAG, "Error marking message as read: " + e.getMessage());
-                        }
-                    });
-        } catch (Exception e) {
-            Log.e(TAG, "Error in markMessageAsRead: " + e.getMessage());
-        }
+        // This method is no longer needed as conversation logic is removed
+    }
+    
+    private void markAllMessagesAsRead() {
+        // This method is no longer needed as conversation logic is removed
     }
     
     // Generate a consistent conversation ID for two users, regardless of order

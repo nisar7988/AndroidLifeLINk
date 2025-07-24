@@ -14,8 +14,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 public class MessagesFragment extends Fragment implements MessageAdapter.OnMessageClickListener {
@@ -70,17 +76,21 @@ public class MessagesFragment extends Fragment implements MessageAdapter.OnMessa
         rvMessages.setVisibility(View.GONE);
         tvNoMessages.setVisibility(View.GONE);
         
-        // Add sample data (in a real app, this would come from Firestore)
-        messagesList.add(new MessageModel("1", "user1", "John Smith", "Hey, are you available for donation tomorrow?", "Today, 10:30 AM", 2));
-        messagesList.add(new MessageModel("2", "user2", "Sarah Johnson", "Thank you for your help!", "Yesterday", 0));
-        messagesList.add(new MessageModel("3", "user3", "Michael Brown", "I'll be at the hospital at 3 PM", "Yesterday", 0));
-        messagesList.add(new MessageModel("4", "user4", "Emily Davis", "Do you know where the donation center is located?", "25/3/2023", 1));
-        messagesList.add(new MessageModel("5", "user5", "David Wilson", "Is AB+ compatible with my blood type?", "20/3/2023", 0));
-        
-        // Update the adapter with the data
+        // Use static data
+                    messagesList.clear();
+        messagesList.addAll(Arrays.asList(
+            new MessageModel("1", "user1", "John Smith", "Hey, are you available for donation tomorrow?", "Today, 10:30 AM", 2),
+            new MessageModel("2", "user2", "Sarah Johnson", "Thank you for your help!", "Yesterday", 0),
+            new MessageModel("3", "user3", "Michael Brown", "I'll be at the hospital at 3 PM", "Yesterday", 0),
+            new MessageModel("4", "user4", "Emily Davis", "Do you know where the donation center is located?", "25/3/2023", 1),
+            new MessageModel("5", "user5", "David Wilson", "Is AB+ compatible with my blood type?", "20/3/2023", 0)
+        ));
         messageAdapter.setMessagesList(messagesList);
-        
-        // Hide progress and show proper views
+        progressBar.setVisibility(View.GONE);
+        updateMessagesUI();
+    }
+    
+    private void updateMessagesUI() {
         progressBar.setVisibility(View.GONE);
         
         if (messagesList.isEmpty()) {
@@ -89,6 +99,29 @@ public class MessagesFragment extends Fragment implements MessageAdapter.OnMessa
         } else {
             rvMessages.setVisibility(View.VISIBLE);
             tvNoMessages.setVisibility(View.GONE);
+        }
+    }
+    
+    private String getTimeAgo(Date date) {
+        if (date == null) return "Unknown";
+        
+        long timeInMillis = date.getTime();
+        long now = System.currentTimeMillis();
+        long diff = now - timeInMillis;
+        
+        long seconds = diff / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+        
+        if (days > 0) {
+            return days + "d ago";
+        } else if (hours > 0) {
+            return hours + "h ago";
+        } else if (minutes > 0) {
+            return minutes + "m ago";
+        } else {
+            return "Just now";
         }
     }
 

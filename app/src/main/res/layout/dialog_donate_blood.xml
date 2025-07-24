@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Donation Center"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etDonationCenter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter donation center name"
+        android:inputType="text"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Donation Date"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etDonationDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="dd/mm/yyyy"
+        android:inputType="date"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Notes (Optional)"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/etNotes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Any additional notes about your donation"
+        android:inputType="textMultiLine"
+        android:minLines="2"
+        android:maxLines="4"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Thank you for donating blood! Your donation can save up to 3 lives."
+        android:textStyle="italic"
+        android:textColor="@color/success_green"
+        android:gravity="center"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout> 

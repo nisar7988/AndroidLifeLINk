@@ -11,6 +11,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,7 +20,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ConnectionsFragment extends Fragment implements ConnectionAdapter.OnConnectionClickListener {
 
@@ -90,21 +95,19 @@ public class ConnectionsFragment extends Fragment implements ConnectionAdapter.O
         progressBar.setVisibility(View.VISIBLE);
         rvConnections.setVisibility(View.GONE);
         tvNoConnections.setVisibility(View.GONE);
-        
-        // Add sample data (in a real app, this would come from Firestore)
-        connectionsList.add(new ConnectionModel("1", "John Smith", "A+", "2.3", false));
-        connectionsList.add(new ConnectionModel("2", "Sarah Johnson", "O-", "4.5", true));
-        connectionsList.add(new ConnectionModel("3", "Michael Brown", "B+", "1.8", false));
-        connectionsList.add(new ConnectionModel("4", "Emily Davis", "AB+", "5.2", false));
-        connectionsList.add(new ConnectionModel("5", "David Wilson", "A-", "3.7", true));
-        
-        // Update the adapter with the data
+        // Use static data
+                    connectionsList.clear();
+        connectionsList.addAll(Arrays.asList(
+            new ConnectionModel("1", "John Smith", "A+", "2.3", false),
+            new ConnectionModel("2", "Sarah Johnson", "O-", "4.5", true),
+            new ConnectionModel("3", "Michael Brown", "B+", "1.8", false),
+            new ConnectionModel("4", "Emily Davis", "AB+", "5.2", false),
+            new ConnectionModel("5", "David Wilson", "A-", "3.7", true)
+        ));
+        filteredList.clear();
         filteredList.addAll(connectionsList);
         connectionAdapter.setConnectionsList(filteredList);
-        
-        // Hide progress and show proper views
         progressBar.setVisibility(View.GONE);
-        
         if (filteredList.isEmpty()) {
             rvConnections.setVisibility(View.GONE);
             tvNoConnections.setVisibility(View.VISIBLE);
@@ -149,7 +152,23 @@ public class ConnectionsFragment extends Fragment implements ConnectionAdapter.O
 
     @Override
     public void onConnectClick(ConnectionModel connection) {
-        Toast.makeText(getContext(), "Connected with " + connection.getName(), Toast.LENGTH_SHORT).show();
+        // Show confirmation dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Connect with " + connection.getName());
+        builder.setMessage("Would you like to connect with " + connection.getName() + 
+                " (" + connection.getBloodType() + ")? You'll be able to message each other.");
+        
+        builder.setPositiveButton("Connect", (dialog, which) -> {
+            // sendConnectionRequest(connection); // Removed Firebase logic
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    
+    private void sendConnectionRequest(ConnectionModel connection) {
+        // Removed FirebaseAuth and Firestore usages
+        Toast.makeText(getContext(), "Connection request feature coming soon", Toast.LENGTH_SHORT).show();
     }
 
     @Override

@@ -23,14 +23,17 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputEditText etEmail, etPassword;
     private Button btnLogin;
     private TextView tvForgotPassword, tvRegister;
-    private FirebaseAuth mAuth;
+    // Remove FirebaseAuth
+    // private FirebaseAuth mAuth;
+    // Static user name
+    public static String STATIC_USER_NAME = "jaagu";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        mAuth = FirebaseAuth.getInstance();
+        // mAuth = FirebaseAuth.getInstance();
 
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
@@ -55,24 +58,7 @@ public class LoginActivity extends AppCompatActivity {
         tvForgotPassword.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Implement forgot password functionality
-                String email = etEmail.getText().toString().trim();
-                if (TextUtils.isEmpty(email)) {
-                    Toast.makeText(LoginActivity.this, "Enter your email address", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                mAuth.sendPasswordResetEmail(email)
-                        .addOnCompleteListener(new OnCompleteListener<Void>() {
-                            @Override
-                            public void onComplete(@NonNull Task<Void> task) {
-                                if (task.isSuccessful()) {
-                                    Toast.makeText(LoginActivity.this, "Password reset email sent", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(LoginActivity.this, "Failed to send reset email", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
+                Toast.makeText(LoginActivity.this, "Forgot password is disabled in static mode", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -80,12 +66,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        // Check if user is signed in and update UI accordingly
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
-            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-            finish();
-        }
+        // No auto-login in static mode
     }
 
     private void loginUser() {
@@ -102,20 +83,11 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // Authenticate user
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(LoginActivity.this, "Login successful", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
+        // Accept any credentials
+        Toast.makeText(LoginActivity.this, "Login successful! Welcome, " + STATIC_USER_NAME, Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        intent.putExtra("user_name", STATIC_USER_NAME);
+        startActivity(intent);
                             finish();
-                        } else {
-                            Toast.makeText(LoginActivity.this, "Authentication failed: " + task.getException().getMessage(),
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
     }
 }

@@ -1,9 +1,13 @@
 package com.example.lifelink;
+
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -29,8 +33,11 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -41,34 +48,38 @@ public class ProfileActivity extends AppCompatActivity {
     private CircleImageView ivProfileImage;
     private TextView tvProfileName, tvProfileEmail, tvBio, tvConnectionsCount;
     private Button btnEditProfile, btnLogout;
-    
-    private FirebaseAuth mAuth;
-    private FirebaseFirestore db;
-    private FirebaseUser currentUser;
-    private String userId;
-    private String userProfileImageUrl;
-    private Uri imageUri;
-    private StorageReference storageRef;
+
+    // Remove Firebase fields
+    // private FirebaseAuth mAuth;
+    // private FirebaseFirestore db;
+    // private FirebaseUser currentUser;
+    // private String userId;
+    // private String userProfileImageUrl;
+    // private Uri imageUri;
+    // private StorageReference storageRef;
+
+    private ProgressDialog progressDialog;
+
+    // Static user data
+    private String userName = "Jaagu";
+    private String userEmail = "jaag@gmail.com";
+    private String userBio = "A passionate blood donor and community helper.";
+    private int connectionsCount = 42;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
-        
-        mAuth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        currentUser = mAuth.getCurrentUser();
-        storageRef = FirebaseStorage.getInstance().getReference("profile_images");
-        
-        if (currentUser == null) {
-            startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
-            finish();
-            return;
-        }
-        
-        userId = currentUser.getUid();
-        
-        // Initialize views
+
+        // Remove Firebase init
+        // mAuth = FirebaseAuth.getInstance();
+        // db = FirebaseFirestore.getInstance();
+        // currentUser = mAuth.getCurrentUser();
+        // storageRef = FirebaseStorage.getInstance().getReference("profile_images");
+
+        // Remove Firebase user check
+        // if (currentUser == null) { ... }
+
         ivProfileImage = findViewById(R.id.ivProfileImage);
         tvProfileName = findViewById(R.id.tvProfileName);
         tvProfileEmail = findViewById(R.id.tvProfileEmail);
@@ -76,204 +87,85 @@ public class ProfileActivity extends AppCompatActivity {
         tvConnectionsCount = findViewById(R.id.tvConnectionsCount);
         btnEditProfile = findViewById(R.id.btnEditProfile);
         btnLogout = findViewById(R.id.btnLogout);
-        
-        // Set click listener for profile image
-        ivProfileImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openFileChooser();
-            }
-        });
-        
-        // Load user data
+
+        // Set profile image from drawable (profile.jpeg)
+        try {
+            ivProfileImage.setImageResource(R.drawable.profile);
+        } catch (Exception e) {
+            // fallback to a default icon if profile.jpeg is missing
+            ivProfileImage.setImageResource(android.R.drawable.ic_menu_camera);
+        }
         loadUserData();
-        
-        // Set click listeners
-        btnLogout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAuth.signOut();
-                startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
-                finish();
-            }
+
+        btnLogout.setOnClickListener(v -> {
+            startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
+            finish();
         });
-        
-        btnEditProfile.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showEditProfileDialog();
-            }
-        });
+
+        btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
     }
-    
+
     private void loadUserData() {
-        db.collection("users").document(userId)
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-                        if (task.isSuccessful()) {
-                            DocumentSnapshot document = task.getResult();
-                            if (document.exists()) {
-                                String name = document.getString("name");
-                                String email = document.getString("email");
-                                String bio = document.getString("bio");
-                                userProfileImageUrl = document.getString("profileImageUrl");
-                                
-                                tvProfileName.setText(name != null ? name : "No name available");
-                                tvProfileEmail.setText(email != null ? email : "No email available");
-                                
-                                if (bio != null && !bio.isEmpty()) {
-                                    tvBio.setText(bio);
-                                } else {
-                                    tvBio.setText("No bio added yet.");
-                                }
-                                
-                                // Mock connection count for now
-                                tvConnectionsCount.setText("0 Connections");
-                                
-                                // Load profile image if available
-                                if (userProfileImageUrl != null && !userProfileImageUrl.isEmpty()) {
-                                    Picasso.get().load(userProfileImageUrl)
-                                            .placeholder(android.R.drawable.ic_menu_camera)
-                                            .error(android.R.drawable.ic_menu_camera)
-                                            .into(ivProfileImage);
-                                } else {
-                                    ivProfileImage.setImageResource(android.R.drawable.ic_menu_camera);
-                                }
-                            } else {
-                                Toast.makeText(ProfileActivity.this, "User profile not found", Toast.LENGTH_SHORT).show();
-                            }
-                        } else {
-                            Toast.makeText(ProfileActivity.this, "Failed to load profile data", Toast.LENGTH_SHORT).show();
-                            Exception e = task.getException();
-                            Log.e("ProfileActivity", "Error loading profile data", e);
-                        }
-                    }
-                });
+        tvProfileName.setText(userName != null && !userName.isEmpty() ? userName : "Default Name");
+        tvProfileEmail.setText(userEmail != null && !userEmail.isEmpty() ? userEmail : "default@email.com");
+        tvBio.setText(userBio != null && !userBio.isEmpty() ? userBio : "No bio available.");
+        tvConnectionsCount.setText(connectionsCount + " Connections");
+        android.util.Log.d("ProfileActivity", "Loaded static data: " + userName + ", " + userEmail + ", " + userBio + ", " + connectionsCount);
+        Toast.makeText(this, "Static profile loaded", Toast.LENGTH_SHORT).show();
     }
-    
+
     private void showEditProfileDialog() {
-        // Create a LinearLayout container for the EditText fields
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 30, 50, 30);
-        
-        // Create EditText fields
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(padding, padding, padding, padding);
+
         final EditText etEditName = new EditText(this);
         etEditName.setHint("Name");
-        etEditName.setText(tvProfileName.getText().toString());
-        
+        etEditName.setText(userName);
+
         final EditText etEditBio = new EditText(this);
         etEditBio.setHint("Bio");
-        etEditBio.setText(tvBio.getText().toString());
-        
-        // Add EditText fields to the layout
+        etEditBio.setText(userBio);
+
         layout.addView(etEditName);
         layout.addView(etEditBio);
-        
-        // Create and show the dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Edit Profile")
+
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Profile")
                 .setView(layout)
-                .setPositiveButton("Save", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Get updated values
-                        String newName = etEditName.getText().toString().trim();
-                        String newBio = etEditBio.getText().toString().trim();
-                        
-                        // Update user profile
-                        updateUserProfile(newName, newBio);
-                    }
+                .setPositiveButton("Save", (dialog, which) -> {
+                    userName = etEditName.getText().toString().trim();
+                    userBio = etEditBio.getText().toString().trim();
+                    loadUserData();
+                    Toast.makeText(ProfileActivity.this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("Cancel", null)
                 .create()
                 .show();
     }
-    
-    private void updateUserProfile(String name, String bio) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("name", name);
-        updates.put("bio", bio);
-        
-        db.collection("users").document(userId)
-                .update(updates)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void aVoid) {
-                        // Refresh profile data
-                        loadUserData();
-                        Snackbar.make(findViewById(android.R.id.content), "Profile updated successfully", Snackbar.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(ProfileActivity.this, "Failed to update profile: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-    }
-    
+
     private void openFileChooser() {
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent, PICK_IMAGE_REQUEST);
     }
-    
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK
-                && data != null && data.getData() != null) {
-            imageUri = data.getData();
-            uploadProfileImage();
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            // imageUri = data.getData(); // This line is removed as per the new_code
+            // uploadProfileImage(); // This line is removed as per the new_code
         }
     }
-    
+
     private void uploadProfileImage() {
-        if (imageUri != null) {
-            // Show upload progress
-            Toast.makeText(this, "Uploading image...", Toast.LENGTH_SHORT).show();
-            
-            // Create a reference to the file location with userId as filename
-            final StorageReference fileRef = storageRef.child(userId + ".jpg");
-            
-            fileRef.putFile(imageUri)
-                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            // Get download URL and update profile
-                            fileRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                @Override
-                                public void onSuccess(Uri uri) {
-                                    userProfileImageUrl = uri.toString();
-                                    
-                                    // Update the profile image URL in database
-                                    db.collection("users").document(userId)
-                                            .update("profileImageUrl", userProfileImageUrl)
-                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                                @Override
-                                                public void onSuccess(Void aVoid) {
-                                                    // Load the image into the ImageView
-                                                    Picasso.get().load(userProfileImageUrl)
-                                                            .placeholder(android.R.drawable.ic_menu_camera)
-                                                            .error(android.R.drawable.ic_menu_camera)
-                                                            .into(ivProfileImage);
-                                                    Toast.makeText(ProfileActivity.this, "Profile image updated", Toast.LENGTH_SHORT).show();
-                                                }
-                                            });
-                                }
-                            });
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            Toast.makeText(ProfileActivity.this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
-        }
+        // This method is removed as per the new_code
+    }
+
+    private void saveProfileImageLocally() {
+        // This method is removed as per the new_code
     }
 }

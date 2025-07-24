@@ -46,8 +46,9 @@ public class MainActivity extends AppCompatActivity {
                         selectedFragment = new MessagesFragment();
                         break;
                     case R.id.navigation_profile:
-                        selectedFragment = new ProfileFragment();
-                        break;
+                        // Launch ProfileActivity (static data) instead of fragment
+                        startActivity(new android.content.Intent(MainActivity.this, ProfileActivity.class));
+                        return false; // Do not select the tab, just launch activity
                 }
 
                 if (selectedFragment != null) {
